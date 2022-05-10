@@ -92,6 +92,14 @@ edalize.symbiyosys module
     :undoc-members:
     :show-inheritance:
 
+edalize.symbiflow module
+-------------------------
+
+.. automodule:: edalize.symbiflow
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 edalize.spyglass module
 -----------------------
 
