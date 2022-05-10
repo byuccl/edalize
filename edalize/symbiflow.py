@@ -308,6 +308,24 @@ endif
         commands.add_env_var('EDALIZE_VENDOR', vendor)
         commands.add_env_var('EDALIZE_PART', part)
 
+        # Symbiflow variables
+        commands.add_env_var('F4PGA_TOP_MODULE', self.toplevel)
+        commands.add_env_var('F4PGA_VERILOG_FILES', '\'{}\''.format(' '.join(file_list)))
+        commands.add_env_var('F4PGA_TIMING_CONSTRAINT_FILES', '\'{}\''.format(' '.join(timing_constraints)))
+        commands.add_env_var('F4PGA_PIN_CONSTRAINT_FILES', '\'{}\''.format(' '.join(pins_constraints)))
+        commands.add_env_var('F4PGA_PLACE_CONSTRAINT_FILES', '\'{}\''.format(' '.join(placement_constraints)))
+
+        commands.add_env_var('F4PGA_DEVICE_TYPE', bitstream_device)
+        commands.add_env_var('F4PGA_PART_NAME', partname)
+
+        commands.add_env_var('F4PGA_EBLIF_NAME', self.toplevel + ".eblif")
+        commands.add_env_var('F4PGA_NET_NAME', self.toplevel + ".net")
+        commands.add_env_var('F4PGA_PLACE_NAME', self.toplevel + ".place")
+        commands.add_env_var('F4PGA_ROUTE_NAME', self.toplevel + ".route")
+        commands.add_env_var('F4PGA_FASM_NAME', self.toplevel + ".fasm")
+        commands.add_env_var('F4PGA_BITSTREAM_NAME', self.toplevel + ".bit")
+        commands.add_env_var('F4PGA_BINARY_NAME', self.toplevel + ".bin")
+
         # Synthesis
         targets = self.toplevel + ".eblif"
         command = ["symbiflow_synth", "-t", self.toplevel]
