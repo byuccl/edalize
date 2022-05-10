@@ -242,6 +242,9 @@ endif
         commands.write(os.path.join(self.work_root, "Makefile"))
 
     def configure_vpr(self):
+        bitstream_device = ""
+        partname = ""
+        device_suffix = ""
         (src_files, incdirs) = self._get_fileset_files(force_slash=True)
 
         has_vhdl = "vhdlSource" in [x.file_type for x in src_files]
