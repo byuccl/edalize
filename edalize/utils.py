@@ -45,3 +45,7 @@ class EdaCommands(object):
 
                 if c.command:
                     f.write(f"\t$(EDALIZE_LAUNCHER) {' '.join(c.command)}\n")
+
+    # Adds an environmental variable with the given name and value
+    def add_env_var(self, name, value):
+        self.vars.append('export {name}={value}'.format(name=name, value=value))

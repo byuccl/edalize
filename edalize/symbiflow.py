@@ -305,8 +305,8 @@ endif
         commands = EdaCommands()
 
         # Add vendor variables
-        commands.add_var("export EDALIZE_VENDOR=%s" % vendor)
-        commands.add_var("export EDALIZE_PART=%s" % part)
+        commands.add_env_var('EDALIZE_VENDOR', vendor)
+        commands.add_env_var('EDALIZE_PART', part)
 
         # Synthesis
         targets = self.toplevel + ".eblif"
