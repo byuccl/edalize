@@ -296,107 +296,111 @@ endif
             device_suffix = "wlcsp"
             bitstream_device = part + "_" + device_suffix
 
+        commands = EdaCommands()
+
+         # Symbiflow variables
+        commands.add_make_var('F4PGA_TOP_MODULE', self.toplevel)
+        commands.add_make_var('F4PGA_VERILOG_FILES', '\'{}\''.format(' '.join(file_list)))
+        commands.add_make_var('F4PGA_TIMING_CONSTRAINT_FILES', '\'{}\''.format(' '.join(timing_constraints)))
+        commands.add_make_var('F4PGA_PIN_CONSTRAINT_FILES', '\'{}\''.format(' '.join(pins_constraints)))
+        commands.add_make_var('F4PGA_PLACE_CONSTRAINT_FILES', '\'{}\''.format(' '.join(placement_constraints)))
+
+        commands.add_make_var('F4PGA_DEVICE_TYPE', bitstream_device)
+        commands.add_make_var('F4PGA_PART_NAME', partname)
+        commands.add_make_var('F4PGA_DEVICE_NAME', part + "_" + device_suffix)
+
+        commands.add_make_var('F4PGA_EBLIF_NAME', self.toplevel + ".eblif")
+        commands.add_make_var('F4PGA_NET_NAME', self.toplevel + ".net")
+        commands.add_make_var('F4PGA_PLACE_NAME', self.toplevel + ".place")
+        commands.add_make_var('F4PGA_ROUTE_NAME', self.toplevel + ".route")
+        commands.add_make_var('F4PGA_FASM_NAME', self.toplevel + ".fasm")
+        commands.add_make_var('F4PGA_BITSTREAM_NAME', self.toplevel + ".bit")
+        commands.add_make_var('F4PGA_BINARY_NAME', self.toplevel + ".bin")
+        commands.add_make_var('F4PGA_BITHEADER_NAME', self.toplevel + ".h")
+        commands.add_make_var('F4PGA_OPENOCD_NAME', self.toplevel + ".openocd.cfg")
+        commands.add_make_var('F4PGA_JLINK_NAME', self.toplevel + ".jlink")
+
         _vo = self.tool_options.get("vpr_options")
         vpr_options = ["--additional_vpr_options", f'"{_vo}"'] if _vo else []
-        pcf_opts = ["-p"] + pins_constraints if pins_constraints else []
-        sdc_opts = ["-s"] + timing_constraints if timing_constraints else []
-        xdc_opts = ["-x"] + placement_constraints if placement_constraints else []
-
-        commands = EdaCommands()
+        pcf_opts = ["-p"] + [commands.get_make_var('F4PGA_PIN_CONSTRAINT_FILES')] if pins_constraints else []
+        sdc_opts = ["-s"] + [commands.get_make_var('F4PGA_TIMING_CONSTRAINT_FILES')] if timing_constraints else []
+        xdc_opts = ["-x"] + [commands.get_make_var('F4PGA_PLACE_CONSTRAINT_FILES')] if placement_constraints else []
 
         # Add vendor variables
         commands.add_env_var('EDALIZE_VENDOR', vendor)
         commands.add_env_var('EDALIZE_PART', part)
 
-        # Symbiflow variables
-        commands.add_env_var('F4PGA_TOP_MODULE', self.toplevel)
-        commands.add_env_var('F4PGA_VERILOG_FILES', '\'{}\''.format(' '.join(file_list)))
-        commands.add_env_var('F4PGA_TIMING_CONSTRAINT_FILES', '\'{}\''.format(' '.join(timing_constraints)))
-        commands.add_env_var('F4PGA_PIN_CONSTRAINT_FILES', '\'{}\''.format(' '.join(pins_constraints)))
-        commands.add_env_var('F4PGA_PLACE_CONSTRAINT_FILES', '\'{}\''.format(' '.join(placement_constraints)))
-
-        commands.add_env_var('F4PGA_DEVICE_TYPE', bitstream_device)
-        commands.add_env_var('F4PGA_PART_NAME', partname)
-
-        commands.add_env_var('F4PGA_EBLIF_NAME', self.toplevel + ".eblif")
-        commands.add_env_var('F4PGA_NET_NAME', self.toplevel + ".net")
-        commands.add_env_var('F4PGA_PLACE_NAME', self.toplevel + ".place")
-        commands.add_env_var('F4PGA_ROUTE_NAME', self.toplevel + ".route")
-        commands.add_env_var('F4PGA_FASM_NAME', self.toplevel + ".fasm")
-        commands.add_env_var('F4PGA_BITSTREAM_NAME', self.toplevel + ".bit")
-        commands.add_env_var('F4PGA_BINARY_NAME', self.toplevel + ".bin")
-
         # Synthesis
-        targets = self.toplevel + ".eblif"
-        command = ["symbiflow_synth", "-t", self.toplevel]
-        command += ["-v"] + file_list
-        command += ["-d", bitstream_device]
-        command += ["-p" if vendor == "xilinx" else "-P", partname]
+        targets = commands.get_make_var('F4PGA_EBLIF_NAME')
+        command = ["symbiflow_synth", "-t", commands.get_make_var('F4PGA_TOP_MODULE')]
+        command += ["-v"] + [commands.get_make_var('F4PGA_VERILOG_FILES')]
+        command += ["-d", commands.get_make_var('F4PGA_DEVICE_TYPE')]
+        command += ["-p" if vendor == "xilinx" else "-P", commands.get_make_var('F4PGA_PART_NAME')]
         if vendor == "quicklogic" and pins_constraints:
             command += pcf_opts
         command += xdc_opts
         commands.add(command, [targets], [])
 
         # P&R
-        eblif_opt = ["-e", self.toplevel + ".eblif"]
-        device_opt = ["-d", part + "_" + device_suffix]
+        eblif_opt = ["-e", commands.get_make_var('F4PGA_EBLIF_NAME')]
+        device_opt = ["-d", commands.get_make_var('F4PGA_DEVICE_NAME')]
 
-        depends = self.toplevel + ".eblif"
-        targets = self.toplevel + ".net"
+        depends = commands.get_make_var('F4PGA_EBLIF_NAME')
+        targets = commands.get_make_var('F4PGA_NET_NAME')
         command = ["symbiflow_pack"] + eblif_opt + device_opt + sdc_opts + vpr_options
         commands.add(command, [targets], [depends])
 
-        depends = self.toplevel + ".net"
-        targets = self.toplevel + ".place"
+        depends = commands.get_make_var('F4PGA_NET_NAME')
+        targets = commands.get_make_var('F4PGA_PLACE_NAME')
         command = ["symbiflow_place"] + eblif_opt + device_opt
-        command += ["-n", depends, "-P", partname]
+        command += ["-n", depends, "-P", commands.get_make_var('F4PGA_PART_NAME')]
         command += sdc_opts + pcf_opts + vpr_options
         commands.add(command, [targets], [depends])
 
-        depends = self.toplevel + ".place"
-        targets = self.toplevel + ".route"
+        depends = commands.get_make_var('F4PGA_PLACE_NAME')
+        targets = commands.get_make_var('F4PGA_ROUTE_NAME')
         command = ["symbiflow_route"] + eblif_opt + device_opt
         command += sdc_opts + vpr_options
         commands.add(command, [targets], [depends])
 
-        depends = self.toplevel + ".route"
-        targets = self.toplevel + ".fasm"
+        depends = commands.get_make_var('F4PGA_ROUTE_NAME')
+        targets = commands.get_make_var('F4PGA_FASM_NAME')
         command = ["symbiflow_write_fasm"] + eblif_opt + device_opt
         command += sdc_opts + vpr_options
         commands.add(command, [targets], [depends])
 
-        depends = self.toplevel + ".fasm"
-        targets = self.toplevel + ".bit"
-        command = ["symbiflow_write_bitstream"] + ["-d", bitstream_device]
+        depends = commands.get_make_var('F4PGA_FASM_NAME')
+        targets = commands.get_make_var('F4PGA_BITSTREAM_NAME')
+        command = ["symbiflow_write_bitstream"] + ["-d", commands.get_make_var('F4PGA_DEVICE_TYPE')]
         command += ["-f", depends]
-        command += ["-p" if vendor == "xilinx" else "-P", partname]
+        command += ["-p" if vendor == "xilinx" else "-P", commands.get_make_var('F4PGA_PART_NAME')]
         command += ["-b", targets]
         commands.add(command, [targets], [depends])
 
         if vendor == "quicklogic":
-            depends = self.toplevel + ".bit"
-            targets = self.toplevel + ".bin"
+            depends = commands.get_make_var('F4PGA_BITSTREAM_NAME')
+            targets = commands.get_make_var('F4PGA_BINARY_NAME')
             command = ["symbiflow_write_binary"]
             command += [depends]
             command += [targets]
             commands.add(command, [targets], [depends])
 
-            depends = self.toplevel + ".bit"
-            targets = self.toplevel + ".h"
+            depends = commands.get_make_var('F4PGA_BITSTREAM_NAME')
+            targets = commands.get_make_var('F4PGA_BITHEADER_NAME')
             command = ["symbiflow_write_bitheader"]
             command += [depends]
             command += [targets]
             commands.add(command, [targets], [depends])
 
-            depends = self.toplevel + ".bit"
-            targets = self.toplevel + ".openocd.cfg"
+            depends = commands.get_make_var('F4PGA_BITSTREAM_NAME')
+            targets = commands.get_make_var('F4PGA_OPENOCD_NAME')
             command = ["symbiflow_write_openocd"]
             command += [depends]
             command += [targets]
             commands.add(command, [targets], [depends])
 
-            depends = self.toplevel + ".bit"
-            targets = self.toplevel + ".jlink"
+            depends = commands.get_make_var('F4PGA_BITSTREAM_NAME')
+            targets = commands.get_make_var('F4PGA_JLINK_NAME')
             command = ["symbiflow_write_jlink"]
             command += [depends]
             command += [targets]
