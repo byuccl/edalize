@@ -25,13 +25,13 @@ class EdaCommands(object):
         with open(outfile, "w") as f:
             f.write(self.header)
 
-            for v in self.vars:
-                f.write(v + "\n")
-            if self.vars:
-                f.write("\n")
             for v in self.make_vars:
                 f.write(v + "\n")
             if self.make_vars:
+                f.write("\n")
+            for v in self.vars:
+                f.write(v + "\n")
+            if self.vars:
                 f.write("\n")
             
             if not self.default_target:
