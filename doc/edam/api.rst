@@ -110,6 +110,7 @@ openfpga        String                Options for OpenFPGA OpenFPGA_
 quartus         String                Options for Intel Quartus_
 rivierapro      String                Options for Aldec RivieraPro_
 spyglass        String                Options for Synposys SpyGlass_
+symbiflow       String                Options for F4PGA/symbiflow_
 trellis         String                Options for Project Trellis_
 vcs             String                Options for Synopsys VCS_
 verilator       String                Options for Verilator_
@@ -234,6 +235,21 @@ goals               List of String        ``[ 'lint/lint_rtl' ]``               
 rule_parameters     List of String        ``[]``                                 Options passed with ``set_option`` to Spyglass, e.g. "handlememory yes" to prevent error SYNTH_5273 on generic RAM descriptions
 spyglass_parameters List of String        ``[]``                                 Rule parameters passed with ``set_parameter`` to Spyglass, e.g. ``handle_static_caselabels yes`` to allow localparam to be used in case labels (e.g. in state machines)
 =================== ===================== ====================================== ===========
+
+symbiflow
+~~~~~~~
+
+=================== ===================== ===========
+Field Name          Type                  Description
+=================== ===================== ===========
+arch                String                Target architecture. Legal values are *xilinx* and *fpga_interchange* (this is relevant only for Nextpnr variant).
+package             String                FPGA chip package (e.g. clg400-1)
+part                String                FPGA part type (e.g. xc7a50t)
+vendor              String                Target architecture. Currently only "xilinx" is supported
+pnr                 String                Place and Route tool. Currently only "vpr"/"vtr" and "nextpnr" are supported
+vpr_options         String                Additional options for VPR tool. If not used, default options for the tool will be used
+nextpnr_options     String                Additional options for Nextpnr tool. If not used, default options for the tool will be used
+=================== ===================== ===========
 
 trellis
 ~~~~~~~
