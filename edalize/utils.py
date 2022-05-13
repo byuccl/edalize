@@ -25,13 +25,13 @@ class EdaCommands(object):
         with open(outfile, "w") as f:
             f.write(self.header)
 
-            for v in self.vars:
-                f.write(v + "\n")
-            if self.vars:
-                f.write("\n")
             for v in self.make_vars:
                 f.write(v + "\n")
             if self.make_vars:
+                f.write("\n")
+            for v in self.vars:
+                f.write(v + "\n")
+            if self.vars:
                 f.write("\n")
             
             if not self.default_target:
@@ -53,14 +53,31 @@ class EdaCommands(object):
                 if c.command:
                     f.write(f"\t$(EDALIZE_LAUNCHER) {' '.join(c.command)}\n")
 
-    # Adds an environmental variable with the given name and value
     def add_env_var(self, name, value):
+        """Adds an environmental variable to the Makefile
+
+        Args:
+            name: The variable name
+            value: The value to set the variable to
+        """
         self.vars.append('export {name}={value}'.format(name=name, value=value))
 
-    # Adds a make variable with the given name and value
     def add_make_var(self, name, value):
+        """Adds a regular make variable to the Makefile
+
+        Args:
+            name: The variable name
+            value: THe value to set the variable to
+        """
         self.make_vars.append('{name}={value}'.format(name=name, value=value))
 
-    # Returns a formatted string representing the make variable with the name
     def get_make_var(self, name):
+        """Returns a make variable token string with the given name
+        
+        Args:
+            name: The variable name
+
+        Returns:
+            str: The make variable token, usable in the file
+        """
         return '$({name})'.format(name=name)
