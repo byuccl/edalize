@@ -324,7 +324,7 @@ endif
         commands.add_make_var('F4PGA_SYNTH_TCL_PATH', commands.get_make_var('F4PGA_UTILS_PATH') + "${FPGA_FAM}/synth.tcl")
         commands.add_make_var('F4PGA_CONV_TCL_PATH', commands.get_make_var('F4PGA_UTILS_PATH') + "${FPGA_FAM}/conv.tcl")
         commands.add_make_var('F4PGA_SPLIT_INOUTS_PATH', commands.get_make_var('F4PGA_UTILS_PATH') + "split_inouts.py")
-        commands.add_make_var('F4PGA_DATABASE_DIR', "$(prjxray-config)")
+        commands.add_make_var('F4PGA_DATABASE_DIR', "$(shell prjxray-config)")
         commands.add_make_var('F4PGA_SYNTH_TOOL', "yosys")
         commands.add_make_var('F4PGA_PYTHON', "python3")
 
@@ -362,7 +362,7 @@ endif
         commands.add_env_var('OUT_SDC', self.toplevel + ".sdc")
         commands.add_env_var('TOP', commands.get_make_var('F4PGA_TOP_MODULE'))
         commands.add_env_var('INPUT_XDC_FILES', commands.get_make_var('F4PGA_PLACE_CONSTRAINT_FILES'))
-        commands.add_env_var('PART_JSON', 'realpath {}/{}/{}/part.json'.format(
+        commands.add_env_var('PART_JSON', '{}/{}/{}/part.json'.format(
                                                                             commands.get_make_var('F4PGA_DATABASE_DIR'),
                                                                             commands.get_make_var('F4PGA_DEVICE_TYPE'),
                                                                             commands.get_make_var('F4PGA_PART_NAME')))
@@ -371,9 +371,7 @@ endif
         commands.add_env_var('UTILS_PATH', commands.get_make_var('F4PGA_UTILS_PATH'))
         commands.add_env_var('OUT_JSON', commands.get_make_var('F4PGA_SYNTH_INTERMEDIATE_1'))
         commands.add_env_var('PYTHON3', commands.get_make_var('F4PGA_PYTHON'))
-        #commands.add_env_var('', )
-        #commands.add_env_var('', )
-        #commands.add_env_var('', )
+        commands.add_env_var('OUT_EBLIF', commands.get_make_var('F4PGA_EBLIF_NAME'))
 
         # Synthesis
         #targets = commands.get_make_var('F4PGA_EBLIF_NAME')
