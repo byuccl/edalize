@@ -252,14 +252,17 @@ endif
 
         if has_vhdl or has_vhdl2008:
             logger.error("VHDL files are not supported in Yosys")
-        file_list = []
+        verilog_file_list = []
+        system_verilog_file_list = []
         timing_constraints = []
         pins_constraints = []
         placement_constraints = []
 
         for f in src_files:
             if f.file_type in ["verilogSource"]:
-                file_list.append(f.name)
+                verilog_file_list.append(f.name)
+            if f.file_type in ["systemVerilogSource"]:
+                system_verilog_file_list.append(f.name)
             if f.file_type in ["SDC"]:
                 timing_constraints.append(f.name)
             if f.file_type in ["PCF"]:
@@ -300,10 +303,11 @@ endif
 
          # Symbiflow variables
         commands.add_make_var('F4PGA_TOP_MODULE', self.toplevel)
-        commands.add_make_var('F4PGA_VERILOG_FILES', '{}'.format(' '.join(file_list)))
-        commands.add_make_var('F4PGA_TIMING_CONSTRAINT_FILES', '{}'.format(' '.join(timing_constraints)))
-        commands.add_make_var('F4PGA_PIN_CONSTRAINT_FILES', '{}'.format(' '.join(pins_constraints)))
-        commands.add_make_var('F4PGA_PLACE_CONSTRAINT_FILES', '{}'.format(' '.join(placement_constraints)))
+        commands.add_make_var('F4PGA_VERILOG_FILES', ' '.join(verilog_file_list))
+        commands.add_make_var('F4PGA_SYSTEM_VERILOG_FILES', ' '.join(system_verilog_file_list))
+        commands.add_make_var('F4PGA_TIMING_CONSTRAINT_FILES', ' '.join(timing_constraints))
+        commands.add_make_var('F4PGA_PIN_CONSTRAINT_FILES', ' '.join(pins_constraints))
+        commands.add_make_var('F4PGA_PLACE_CONSTRAINT_FILES', ' '.join(placement_constraints))
 
         commands.add_make_var('F4PGA_DEVICE_TYPE', bitstream_device)
         commands.add_make_var('F4PGA_PART_NAME', partname)
@@ -332,11 +336,12 @@ endif
         commands.add_make_var('F4PGA_SYNTH_INTERMEDIATE_1', self.toplevel + ".json")
         commands.add_make_var('F4PGA_SYNTH_INTERMEDIATE_2', self.toplevel + "_io.json")
 
-        commands.add_make_var('F4PGA_SYNTH_ARGS_YOSYS_1', '-p \"tcl {}\" -l {} {}'.format(
+        commands.add_make_var('F4PGA_SYNTH_ARGS_YOSYS_1', '-p \"tcl {}\" -l {}'.format(
                                                                                     commands.get_make_var('F4PGA_SYNTH_TCL_PATH'), 
-                                                                                    commands.get_make_var('F4PGA_SYNTH_LOG'),
-                                                                                    commands.get_make_var('F4PGA_VERILOG_FILES')))
-        
+                                                                                    commands.get_make_var('F4PGA_SYNTH_LOG')))
+        commands.add_make_var('F4PGA_SYNTH_ARGS_YOSYS_1_SURELOG', '-p \"plugin -i uhdm\" -p \"read_verilog_with_uhdm {} {}\"'.format(
+                                                                                                                                commands.get_make_var('F4PGA_SYSTEM_VERILOG_FILES'),
+                                                                                                                                commands.get_make_var('F4PGA_VERILOG_FILES')))
         commands.add_make_var('F4PGA_SYNTH_ARGS_PYTHON', '{} -i {} -o {}'.format(
                                                                             commands.get_make_var('F4PGA_SPLIT_INOUTS_PATH'), 
                                                                             commands.get_make_var('F4PGA_SYNTH_INTERMEDIATE_1'), 
@@ -344,7 +349,6 @@ endif
         commands.add_make_var('F4PGA_SYNTH_ARGS_YOSYS_2', '-p \"read_json {}; tcl {}\"'.format(
                                                                                             commands.get_make_var('F4PGA_SYNTH_INTERMEDIATE_2'),
                                                                                             commands.get_make_var('F4PGA_CONV_TCL_PATH')))
-        
 
         _vo = self.tool_options.get("vpr_options")
         vpr_options = ["--additional_vpr_options", f'"{_vo}"'] if _vo else []
@@ -387,7 +391,14 @@ endif
         # Synthesis - Yosys direct
         yosysTarget1 = commands.get_make_var('F4PGA_SYNTH_INTERMEDIATE_1')
         yosysDepend1 = commands.get_make_var('F4PGA_VERILOG_FILES')
-        yosysCommand1 = [commands.get_make_var('F4PGA_SYNTH_TOOL'), commands.get_make_var('F4PGA_SYNTH_ARGS_YOSYS_1')]
+        yosysCommand1 = [commands.get_make_var('F4PGA_SYNTH_TOOL')]
+        if system_verilog_file_list:
+            yosysDepend1 += " " + commands.get_make_var('F4PGA_SYSTEM_VERILOG_FILES')
+            yosysCommand1.append(commands.get_make_var('F4PGA_SYNTH_ARGS_YOSYS_1_SURELOG'))
+            yosysCommand1.append(commands.get_make_var('F4PGA_SYNTH_ARGS_YOSYS_1'))
+        else:
+            yosysCommand1.append(commands.get_make_var('F4PGA_SYNTH_ARGS_YOSYS_1'))
+            yosysCommand1.append(commands.get_make_var('F4PGA_VERILOG_FILES'))
         commands.add(yosysCommand1, [yosysTarget1], [yosysDepend1])
 
         pythonTarget = commands.get_make_var('F4PGA_SYNTH_INTERMEDIATE_2')
