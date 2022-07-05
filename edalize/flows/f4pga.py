@@ -20,7 +20,7 @@ class F4pga(Edaflow):
     FLOW_OPTIONS = {
         "arch": {
             "type": "String",
-            "desc": "The architecture name for Yosys (e.g. 'xilinx')"
+            "desc": "The architecture name (e.g. 'xilinx')"
         },
         "device_type": {
             "type": "String",
@@ -40,7 +40,7 @@ class F4pga(Edaflow):
         },
         "board": {
             "type": "String",
-            "desc": "The name of the board (used by openFPGALoader to download bitstream, e.g. 'basys3')"
+            "desc": "The name of the board (e.g. 'basys3')"
         }
     }
 
