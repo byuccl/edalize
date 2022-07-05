@@ -1,0 +1,8 @@
+{
+    "basys3"    :   {
+        "arch": "xilinx",
+        "device_type": "artix7",
+        "device_name": "xc7a50t_test",
+        "part": "xc7a35tcpg236-1"
+    }
+}

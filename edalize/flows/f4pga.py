@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
 import os.path
+import pkg_resources
+import json
 
 from edalize.flows.edaflow import Edaflow
 
@@ -104,17 +106,40 @@ class F4pga(Edaflow):
                 "nextpnr_options": []
                 })
 
+    def load_db(self):
+        return json.loads(pkg_resources.resource_string(__package__, "f4pga/board_db.json"))
+
     def __init__(self, edam, work_root, verbose=False):
+        flow_options = edam.get("flow_options", {})
+
         # Read Place and Route tool if specified, otherwise default to VPR
-        self.pnr_tool = edam.get("flow_options", {}).get("pnr", "vpr")
+        self.pnr_tool = flow_options.get("pnr", "vpr")
 
         # Build flow using class methods
         self.FLOW.append(self.get_synth_node(self.pnr_tool))
         self.FLOW.append(self.get_pnr_node(self.pnr_tool))
 
+        # Load JSON database file for mapping board name to arch/part/package names
+        self.board_db = self.load_db()
+
+        # Make sure board is defined
+        if "board" not in flow_options:
+            raise RuntimeError("Missing required 'board' flow option")
+        else:
+            board_name = flow_options.get("board")
+            if board_name not in self.board_db:
+                raise RuntimeError(f"The F4PGA flow currently does not support the board '{board_name}'")
+            else:
+                board_dict = self.board_db.get(board_name)
+                flow_options.update(board_dict)     # Board definitions in board_db.json override edam inputs (for now)
+
+        # Once all options are loaded, proceed with initialization
         Edaflow.__init__(self, edam, work_root, verbose)
         self.name = self.edam["name"]
+        self.top = self.edam["toplevel"]
         self.bitstream_file = f"{self.name}.bit"
+
+        
 
     def build_tool_graph(self):
         return super().build_tool_graph()
@@ -122,8 +147,6 @@ class F4pga(Edaflow):
     def configure_tools(self, nodes):
         super().configure_tools(nodes)
 
-        name = self.edam["name"]
-        top = self.edam["toplevel"]
         self.commands.set_default_target("${BITSTREAM_FILE}")
 
         constraint_file_list = []
@@ -137,7 +160,7 @@ class F4pga(Edaflow):
         
         if self.pnr_tool == "vpr":
             # VPR genfasm command generates a fasm file that matches the top module name, by default
-            self.commands.add_env_var("FASM_FILE", f"{top}.fasm")
+            self.commands.add_env_var("FASM_FILE", f"{self.top}.fasm")
         else:
             # NextPNR generates fasm file that matches the project name by default
             self.commands.add_env_var("FASM_FILE", f"{self.name}.fasm")
@@ -149,7 +172,7 @@ class F4pga(Edaflow):
         self.commands.add_env_var("DEVICE_NAME_MODIFIED", "$(shell echo ${DEVICE_NAME} | sed -n 's/_/-/p')")
         self.commands.add_env_var("PART", self.flow_options["part"])
         self.commands.add_env_var("BOARD", self.flow_options["board"])
-        self.commands.add_env_var("TOP", f"{top}")
+        self.commands.add_env_var("TOP", f"{self.top}")
 
         self.commands.add_env_var("INPUT_XDC_FILES", ' '.join(constraint_file_list))
         self.commands.add_env_var("PYTHON", "python3")

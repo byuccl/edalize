@@ -48,6 +48,9 @@ setup(
             "templates/vivado/vivado-run.tcl.j2",
             "templates/vivado/vivado-synth.tcl.j2",
         ],
+        "edalize.flows": [
+            "f4pga/board_db.json"
+        ]
     },
     author="Olof Kindgren",
     author_email="olof.kindgren@gmail.com",
