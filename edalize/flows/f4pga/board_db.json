@@ -11,5 +11,26 @@
         "device_type": "artix7",
         "device_name": "xc7a50t_test",
         "part": "xc7a35tcsg324-1"
+    },
+
+    "arty_a7_100t"  : {
+        "arch": "xilinx",
+        "device_type": "artix7",
+        "device_name": "xc7a100t_test",
+        "part": "xc7a100tcsg324-1"
+    },
+
+    "nexysVideo"    : {
+        "arch": "xilinx",
+        "device_type": "artix7",
+        "device_name": "xc7a200t_test",
+        "part": "xc7a200tsbg484-1"
+    },
+
+    "zybo_z7_10"    : {
+        "arch": "xilinx",
+        "device_type": "zynq7",
+        "device_name": "xc7z010_test",
+        "part": "xc7z010clg400-1"
     }
 }
