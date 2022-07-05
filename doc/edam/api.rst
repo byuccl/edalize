@@ -126,11 +126,12 @@ f4pga
 =============== ===================== ===========
 Field Name      Type                  Description
 =============== ===================== ===========
-arch            String                Architecture specification for the Yosys tool (e.g. 'xilinx')
-device_type     String                Device type for f4pga/symbiflow tools (e.g. 'artix7')
-device_name     String                Device name for f4pga/symbiflow tools (e.g. 'xc7a50t_test')
-part            String                Part name for f4pga/symbiflow tools (e.g. 'xc7a35tcpg236-1')
-pnr             String                Place and route tool to use (valid options are 'vpr'/'vtr' and 'nextpnr', default is 'vpr)
+board           String                Name of target board (e.g. 'basys3'). This entry is required and will throw an error if it is not present. The following four entries will also be pulled from an internal database using this value as the lookup.
+arch            String                Architecture identifier (e.g. 'xilinx').
+device_type     String                Device type identifier (e.g. 'artix7').
+device_name     String                Device name (e.g. 'xc7a50t_test').
+part            String                Part name (e.g. 'xc7a35tcpg236-1').
+pnr             String                Place and route tool to use (valid options are 'vpr'/'vtr' and 'nextpnr', default is 'vpr).
 =============== ===================== ===========
 
 ghdl
