@@ -32,5 +32,12 @@
         "device_type": "zynq7",
         "device_name": "xc7z010_test",
         "part": "xc7z010clg400-1"
+    },
+
+    "quickfeather_development_kit"  : {
+        "arch": "quicklogic",
+        "device_type": "zynq7",
+        "device_name": "ql-eos-s3_wlcsp",
+        "part": "xc7z010clg400-1"
     }
 }

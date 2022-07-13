@@ -121,6 +121,8 @@ class F4pga(Edaflow):
 
         # Load JSON database file for mapping board name to arch/part/package names
         self.board_db = self.load_db()
+        for key,value in self.board_db.items():
+            print("Key: " + key)
 
         # Make sure board is defined
         if "board" not in flow_options:
@@ -138,7 +140,7 @@ class F4pga(Edaflow):
         self.name = self.edam["name"]
         self.top = self.edam["toplevel"]
         self.bitstream_file = f"{self.name}.bit"
-
+        self.arch = flow_options.get("arch")
         
 
     def build_tool_graph(self):
@@ -147,12 +149,13 @@ class F4pga(Edaflow):
     def configure_tools(self, nodes):
         super().configure_tools(nodes)
 
-        self.commands.set_default_target("${BITSTREAM_FILE}")
-
-        constraint_file_list = []
+        xdc_file_list = []
+        pcf_file = ""
         for f in self.edam["files"]:
             if f["file_type"] in ["xdc"]:
-                constraint_file_list.append(f["name"])
+                xdc_file_list.append(f["name"])
+            if f["file_type"] in ["pcf"]:
+                pcf_file = f["name"]
 
         # F4PGA Variables
         self.commands.add_env_var("NET_FILE", f"{self.name}.net")
@@ -167,6 +170,12 @@ class F4pga(Edaflow):
 
         self.commands.add_env_var("BITSTREAM_FILE", self.bitstream_file)
 
+        # Quicklogic targets
+        self.commands.add_env_var("BINARY_FILE", f"{self.name}.bin")
+        self.commands.add_env_var("BITHEADER_FILE", f"{self.name}.h")
+        self.commands.add_env_var("OPENOCD_CFG_FILE", f"{self.name}.openocd.cfg")
+        self.commands.add_env_var("JLINK_FILE", f"{self.name}.jlink")
+
         self.commands.add_env_var("DEVICE_TYPE", self.flow_options["device_type"])
         self.commands.add_env_var("DEVICE_NAME", self.flow_options["device_name"])
         self.commands.add_env_var("DEVICE_NAME_MODIFIED", "$(shell echo ${DEVICE_NAME} | sed -n 's/_/-/p')")
@@ -174,8 +183,10 @@ class F4pga(Edaflow):
         self.commands.add_env_var("BOARD", self.flow_options["board"])
         self.commands.add_env_var("TOP", f"{self.top}")
 
-        self.commands.add_env_var("INPUT_XDC_FILES", ' '.join(constraint_file_list))
+        self.commands.add_env_var("INPUT_XDC_FILES", ' '.join(xdc_file_list))
         self.commands.add_env_var("PYTHON", "python3")
+        if pcf_file != "":
+            self.commands.add_env_var("PCF_FILE", pcf_file)
 
         self.commands.add_env_var("USE_ROI", "\"FALSE\"")
         self.commands.add_env_var("TECHMAP_PATH", "${F4PGA_ENV_SHARE}/techmaps/xc7_vpr/techmap")
@@ -231,17 +242,49 @@ class F4pga(Edaflow):
                 "--suppress_warnings ${OUT_NOISY_WARNINGS},sum_pin_class:check_unbuffered_edges:load_rr_indexed_data_T_values:check_rr_node:trans_per_R:check_route:set_rr_graph_tool_comment:calculate_average_switch",
         ]))
         
-        # FASM and bitstream generation
         if self.pnr_tool == "vpr":
+            # VPR Doesn't generate the fasm automatically so we have to add the recipe
             fasm_command = ["genfasm", "${ARCH_DEF}", "${OUT_EBLIF}", "--device ${DEVICE_NAME_MODIFIED}", "${VPR_OPTIONS}", "--read_rr_graph ${RR_GRAPH}"]
             fasm_target = "${FASM_FILE}"
             fasm_depend = "${ANALYSIS_FILE}"
             self.commands.add(fasm_command, [fasm_target], [fasm_depend])
 
+        # Add command to turn FASM into bitstream
         bitstream_command = ["xcfasm", "--db-root ${DBROOT}", "--part ${PART}", "--part_file ${DBROOT}/${PART}/part.yaml", "--sparse --emit_pudc_b_pullup", "--fn_in ${FASM_FILE}", "--bit_out ${BITSTREAM_FILE}", "${FRM2BIT}"]
         bitstream_target = "${BITSTREAM_FILE}"
         bitstream_depend = "${FASM_FILE}"
         self.commands.add(bitstream_command, [bitstream_target], [bitstream_depend])
+
+        # Add additional commands for quicklogic targets
+        if self.arch == "quicklogic":
+            # Generate binary file from bitstream
+            binary_target = "${BINARY_FILE}"
+            binary_depend = "${BITSTREAM_FILE}"
+            binary_command = ["${PYTHON}", "-m", "quicklogic_fasm.bitstream_to_binary", binary_depend, binary_target]
+            self.commands.add(binary_command, [binary_target], [binary_depend])
+
+            # Generate bitheader from bitstream
+            bitheader_target = "${BITHEADER_FILE}"
+            bitheader_depend = "${BITSTREAM_FILE}"
+            bitheader_command = ["${PYTHON}", "-m", "quicklogic_fasm.bitstream_to_header", binary_depend, binary_target]
+            self.commands.add(bitheader_command, [bitheader_target], [bitheader_depend])
+
+            # Generate openOCD config file from bitstream
+            openocd_target = "${OPENOCD_CFG_FILE}"
+            openocd_depend = "${BITSTREAM_FILE}"
+            openocd_command = ["${PYTHON}", "-m", "quicklogic_fasm.bitstream_to_openocd", binary_depend, binary_target]
+            self.commands.add(openocd_command, [openocd_target], [openocd_depend])
+
+            # Generate jlink file from bitstream
+            jlink_target = "${JLINK_FILE}"
+            jlink_depend = "${BITSTREAM_FILE}"
+            jlink_command = ["${PYTHON}", "-m", "quicklogic_fasm.bitstream_to_jlink", binary_depend, binary_target]
+            self.commands.add(jlink_command, [jlink_target], [jlink_depend])
+
+            # Generate quicklogic targets
+            self.commands.set_default_target(' '.join(["${BINARY_FILE}", "${BITHEADER_FILE}", "${OPENOCD_CFG_FILE}"]))
+        else:
+            self.commands.set_default_target("${BITSTREAM_FILE}")
 
     def set_run_command(self):
         self.commands.add(["openFPGALoader", "-b", "${BOARD}", "${BITSTREAM_FILE}"], ["run"], ["pre_run"])
