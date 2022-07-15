@@ -54,13 +54,14 @@ class F4pga(Edaflow):
         if pnr_tool == "vpr":
             return ("yosys", [pnr_tool], {
                 "output_format": "eblif",
-                "yosys_template": "${F4PGA_ENV_SHARE}/scripts/xc7/synth.tcl",
+                "yosys_template": "${SYNTH_TCL_SCRIPT}",
                 "split_io": [
-                    "${F4PGA_ENV_SHARE}/scripts/split_inouts.py",   # Python script
+                    "${SPLIT_INOUTS_SCRIPT}",   # Python script
                     "${OUT_JSON}", # infile name
                     "${SYNTH_JSON}", # outfile name
-                    "${F4PGA_ENV_SHARE}/scripts/xc7/conv.tcl" # End TCL script
-            ]})
+                    "${CONV_TCL_SCRIPT}" # End TCL script
+                ]
+            })
         if pnr_tool == "nextpnr":
             return ("yosys", [pnr_tool], {
                 "output_format": "json",
@@ -157,6 +158,13 @@ class F4pga(Edaflow):
             if f["file_type"] in ["pcf"]:
                 pcf_file = f["name"]
 
+        arch_id = ""
+        if self.arch == "quicklogic":
+            arch_id = "quicklogic-arch-defs"
+        elif self.arch == "xilinx":
+            arch_id = "install"
+        self.commands.add_env_var("F4PGA_ENV_SHARE", "${F4PGA_INSTALL_DIR}/${FPGA_FAM}/" + f"{arch_id}/share/symbiflow")
+
         # F4PGA Variables
         self.commands.add_env_var("NET_FILE", f"{self.name}.net")
         self.commands.add_env_var("ANALYSIS_FILE", f"{self.name}.analysis")
@@ -170,11 +178,27 @@ class F4pga(Edaflow):
 
         self.commands.add_env_var("BITSTREAM_FILE", self.bitstream_file)
 
+        synth_tcl_script = ""
+        split_inouts_script = ""
+        conv_tcl_script = ""
+        if self.arch == "xilinx":
+            synth_tcl_script = "${F4PGA_ENV_SHARE}/scripts/xc7/synth.tcl"
+            split_inouts_script = "${F4PGA_ENV_SHARE}/scripts/split_inouts.py"
+            conv_tcl_script = "${F4PGA_ENV_SHARE}/scripts/xc7/conv.tcl"
+        elif self.arch == "quicklogic":
+            synth_tcl_script = "${F4PGA_ENV_SHARE}/scripts/pp3/synth.tcl"
+            split_inouts_script = "${F4PGA_ENV_SHARE}/../../bin/python/split_inouts.py"
+            conv_tcl_script = "${F4PGA_ENV_SHARE}/scripts/pp3/conv.tcl"
+        self.commands.add_env_var("SYNTH_TCL_SCRIPT", synth_tcl_script)
+        self.commands.add_env_var("SPLIT_INOUTS_SCRIPT", split_inouts_script)
+        self.commands.add_env_var("CONV_TCL_SCRIPT", conv_tcl_script)
+
         # Quicklogic targets
-        self.commands.add_env_var("BINARY_FILE", f"{self.name}.bin")
-        self.commands.add_env_var("BITHEADER_FILE", f"{self.name}.h")
-        self.commands.add_env_var("OPENOCD_CFG_FILE", f"{self.name}.openocd.cfg")
-        self.commands.add_env_var("JLINK_FILE", f"{self.name}.jlink")
+        if self.arch == "quicklogic":
+            self.commands.add_env_var("BINARY_FILE", f"{self.name}.bin")
+            self.commands.add_env_var("BITHEADER_FILE", f"{self.name}.h")
+            self.commands.add_env_var("OPENOCD_CFG_FILE", f"{self.name}.openocd.cfg")
+            self.commands.add_env_var("JLINK_FILE", f"{self.name}.jlink")
 
         self.commands.add_env_var("DEVICE_TYPE", self.flow_options["device_type"])
         self.commands.add_env_var("DEVICE_NAME", self.flow_options["device_name"])
