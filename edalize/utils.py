@@ -17,8 +17,16 @@ class EdaCommands(object):
     def add_var(self, var):
         self.vars.append(var)
 
+    def find_os(self):
+        from sys import platform
+        if platform == "linux" or platform == "linux2" or platform == "darwin":
+            prefix = "export"
+        elif platform == "win32":
+            prefix = "set"
+        return prefix
+
     def add_env_var(self, key, value):
-        self.vars.append(f"export {key}={value}")
+        self.vars.append(f"{self.find_os()} {key}={value}")
 
     def set_default_target(self, target):
         self.default_target = target
