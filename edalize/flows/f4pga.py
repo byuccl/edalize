@@ -239,3 +239,9 @@ class F4pga(Edaflow):
             target,
         ]
         self.commands.add(command, [target], [depends])
+
+    # Adds the run command
+    def set_run_command(self):
+        self.commands.add(
+            ["openFPGALoader", "-b", "basys3", f"{self.name}.bit"], ["run"], ["pre_run"]
+        )
